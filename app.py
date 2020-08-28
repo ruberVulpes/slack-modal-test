@@ -1,4 +1,5 @@
 import os
+from threading import Thread
 
 from flask import Flask, make_response, request
 from slack import WebClient
@@ -7,7 +8,7 @@ from slack.web.classes import views
 from slack.web.classes.blocks import InputBlock
 from slack.web.classes.elements import PlainTextInputElement, PlainTextObject
 
-slack_client = WebClient(os.environ.get("SLACK_BOT_TOKEN"))
+slack_client = WebClient(os.environ["SLACK_BOT_TOKEN"])
 flask_app = Flask(__name__)
 
 
@@ -20,7 +21,7 @@ def interactions():
 @flask_app.route("/slack/commands/modal", methods=["POST"])
 def modal_post():
     command = SlashCommandInteractiveEvent(request.form)
-    open_modal(command)
+    Thread(target=open_modal, args=(command, )).start()
     return make_response("", 200)
 
 
@@ -32,7 +33,7 @@ def open_modal(command: SlashCommandInteractiveEvent):
                                      element=PlainTextInputElement(placeholder="It reminds me of my childhood home"),
                                      optional=True)]
     modal = views.View(type="modal", title=title, blocks=color_input_blocks, submit="Submit")
-    slack_client.views_open(trigger_id=command.trigger_id, view=modal.to_dict())
+    slack_client.views_open(trigger_id=command.trigger_id, view=modal)
 
 
 if __name__ == '__main__':
